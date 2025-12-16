@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WM Tech Integrations Explorer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f4f5f7;
+      color: #222;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 12px 20px;
+      background: #1e88e5;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    header .breadcrumbs {
+      font-size: 13px;
+      opacity: 0.95;
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .crumb {
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .crumb.current {
+      cursor: default;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .crumb-sep {
+      opacity: 0.7;
+    }
+
+    header button {
+      border: none;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      white-space: nowrap;
+    }
+    header button:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    main {
+      padding: 20px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .view {
+      display: none;
+    }
+    .view.active {
+      display: block;
+    }
+
+    .center-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+    }
+
+    .big-card {
+      padding: 40px 60px;
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+      font-size: 24px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .big-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 36px rgba(0,0,0,0.16);
+    }
+
+    .systems-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .system-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+      font-weight: 600;
+      border: 1px solid #dde3ea;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
+    }
+
+    .system-card:hover {
+      transform: translateY(-2px);
+      border-color: #1e88e5;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    }
+
+    .oracle-layout {
+      max-width: none;
+      width: 100%;
+      margin-top: 16px;
+    }
+
+    .panel {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px 16px;
+      border: 1px solid #dde3ea;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .panel h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #777;
+      margin-top: 8px;
+    }
+
+    .flow-container {
+      width: 100%;
+      height: clamp(240px, 60vw, 480px);
+      border-radius: 10px;
+      background: #fafbff;
+      border: 1px solid #dde3ea;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .flow-container:fullscreen {
+      width: 100vw;
+      height: 100vh;
+      border-radius: 0;
+      border: none;
+      background: #fafbff;
+    }
+
+    .flow-container:fullscreen svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .diagram-toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      margin-bottom: 10px;
+    }
+
+    .diagram-toolbar button {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid #1e88e5;
+      background: #fff;
+      color: #1e88e5;
+      cursor: pointer;
+    }
+
+    .diagram-toolbar button:hover {
+      background: #1e88e5;
+      color: #fff;
+    }
+
+    .diagram-toolbar .danger {
+      border-color: #c62828;
+      color: #c62828;
+    }
+
+    .diagram-toolbar .danger:hover {
+      background: #c62828;
+      color: #fff;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .node-rect {
+      fill: #ffffff;
+      stroke: #1e88e5;
+      stroke-width: 1.4;
+      rx: 10;
+      ry: 10;
+      filter: drop-shadow(0 1px 3px rgba(0,0,0,0.15));
+      cursor: default;
+    }
+
+    .node-rect.secondary {
+      stroke: #90a4ae;
+    }
+
+    .node-label {
+      font-size: 13px;
+      font-weight: 600;
+      fill: #263238;
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
+    .node-sub {
+      font-size: 10px;
+      fill: #607d8b;
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
+    .arrow-path {
+      stroke: #9e9e9e;
+      stroke-width: 1.8;
+      fill: none;
+      marker-end: url(#arrowhead);
+    }
+
+    .arrow-path.outbound {
+      stroke: #1e88e5;
+      marker-end: url(#arrowhead-outbound);
+    }
+
+    .arrow-path.inbound {
+      stroke: #43a047;
+      marker-end: url(#arrowhead-inbound);
+    }
+
+    .integration-label-group {
+      cursor: pointer;
+    }
+
+    .integration-label-bg {
+      fill: #fafbff;
+      stroke: none;
+    }
+
+    .integration-label {
+      font-size: 11px;
+      fill: #1e88e5;
+      text-decoration: underline;
+      user-select: none;
+    }
+
+    .integration-label.outbound {
+      fill: #1e88e5;
+    }
+
+    .integration-label.inbound {
+      fill: #43a047;
+    }
+
+    .integration-label-group:hover .integration-label {
+      fill: #0d47a1;
+    }
+
+    .integration-label-group:hover .integration-label.inbound {
+      fill: #2e7d32;
+    }
+
+    #int-body {
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-line;
+    }
+
+    #int-body a {
+      color: #1e88e5;
+      text-decoration: none;
+    }
+
+    #int-body a:hover {
+      text-decoration: underline;
+    }
+
+    .empty-hint {
+      font-size: 12px;
+      color: #777;
+    }
+
+    .integrations-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .table-wrap .integrations-table {
+      min-width: 520px;
+    }
+
+    #integration-form input,
+    #integration-form textarea {
+      max-width: 100%;
+    }
+
+    .integrations-table th,
+    .integrations-table td {
+      border: 1px solid #e0e4ea;
+      padding: 6px 8px;
+      text-align: left;
+    }
+
+    .integrations-table th {
+      background: #f0f3f9;
+      font-weight: 600;
+    }
+
+    .integrations-table tbody tr:nth-child(even) {
+      background: #fafbff;
+    }
+
+    .integrations-table button {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid #1e88e5;
+      background: #fff;
+      color: #1e88e5;
+      cursor: pointer;
+    }
+
+    .integrations-table button:hover {
+      background: #1e88e5;
+      color: #fff;
+    }
+
+    @media (max-width: 900px) {
+      .flow-container {
+        height: clamp(220px, 70vw, 360px);
+      }
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 10px 12px;
+        font-size: 16px;
+        justify-content: flex-start;
+      }
+
+      main {
+        padding: 12px;
+      }
+
+      .big-card {
+        padding: 26px 18px;
+        font-size: 18px;
+        width: 100%;
+        max-width: 420px;
+      }
+
+      .systems-grid {
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 12px;
+      }
+
+      .panel {
+        padding: 12px;
+      }
+
+      /* Keep the diagram usable on narrow screens: allow scroll instead of squishing */
+      .flow-container {
+        overflow: auto;
+      }
+
+      .flow-container svg {
+        min-width: 800px;
+        min-height: 480px;
+      }
+
+      #integration-form > div[style*="display:flex"] {
+        flex-wrap: wrap;
+      }
+
+      #integration-form button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>WM Tech Integrations Explorer</div>
+    <div class="breadcrumbs" id="breadcrumbs"></div>
+    <button id="back-button" style="display:none;">⬅ Back</button>
+  </header>
+
+  <main>
+    <section id="view-home" class="view active">
+      <div class="center-container">
+        <div class="big-card" id="btn-open-systems">WM Tech Integrations</div>
+      </div>
+    </section>
+
+    <section id="view-systems" class="view">
+      <h2>Select a System</h2>
+      <p style="font-size:13px;color:#555;">Click on a system to view its integration landscape.</p>
+      <div class="systems-grid">
+        <div class="system-card" data-system="oracle">Oracle</div>
+        <div class="system-card">Coupa</div>
+        <div class="system-card">Kyriba</div>
+        <div class="system-card">Onesource</div>
+        <div class="system-card">OneStream</div>
+        <div class="system-card">SAP</div>
+        <div class="system-card">JPMC</div>
+        <div class="system-card">BOFA</div>
+      </div>
+      <p style="margin-top:16px;font-size:11px;color:#888;">
+        (Currently, the detailed flowchart is implemented for Oracle as an example.
+        You can copy this pattern for other systems.)
+      </p>
+    </section>
+
+    <section id="view-oracle" class="view">
+      <h2>Oracle – Integration Flow</h2>
+      <p style="font-size:13px;color:#555;margin-top:4px;">
+        Flowchart showing inbound and outbound integrations between Oracle and connected systems.
+        Integration IDs are shown on the lines, with the line hidden behind the label for clarity.
+        Click an ID to open a dedicated details page.
+      </p>
+
+      <div class="oracle-layout">
+        <div class="panel">
+          <h3>Oracle-Centric Flow</h3>
+          <div class="diagram-toolbar">
+            <button type="button" id="btn-diagram-fullscreen">Full screen</button>
+            <button type="button" id="btn-diagram-zoom-out">−</button>
+            <button type="button" id="btn-diagram-zoom-reset">Reset</button>
+            <button type="button" id="btn-diagram-zoom-in">+</button>
+          </div>
+          <div class="flow-container">
+            <svg id="oracle-flow-svg" viewBox="0 0 800 480" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                  <polygon points="0 0, 8 3, 0 6" fill="#9e9e9e" />
+                </marker>
+                <marker id="arrowhead-outbound" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                  <polygon points="0 0, 8 3, 0 6" fill="#1e88e5" />
+                </marker>
+                <marker id="arrowhead-inbound" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                  <polygon points="0 0, 8 3, 0 6" fill="#43a047" />
+                </marker>
+              </defs>
+
+              <!-- Dynamic links are rendered behind the nodes -->
+              <g id="oracle-dynamic-links"></g>
+
+              <rect class="node-rect" x="330" y="200" width="140" height="60"></rect>
+              <text class="node-label" x="400" y="225">Oracle</text>
+              <text class="node-sub" x="400" y="242">Core ERP</text>
+
+              <rect class="node-rect secondary" x="90" y="80" width="140" height="50"></rect>
+              <text class="node-label" x="160" y="105">SAP</text>
+              <text class="node-sub" x="160" y="120">ERP / Financials</text>
+
+              <rect class="node-rect secondary" x="570" y="80" width="160" height="50"></rect>
+              <text class="node-label" x="650" y="105">JPMC</text>
+              <text class="node-sub" x="650" y="120">Bank (JPMorgan)</text>
+
+              <rect class="node-rect secondary" x="570" y="320" width="160" height="50"></rect>
+              <text class="node-label" x="650" y="345">BOFA</text>
+              <text class="node-sub" x="650" y="360">Bank of America</text>
+
+              <rect class="node-rect secondary" x="90" y="320" width="160" height="50"></rect>
+              <text class="node-label" x="170" y="345">Onesource</text>
+              <text class="node-sub" x="170" y="360">Tax / Compliance</text>
+
+              <!-- Dynamic nodes (for systems not hard-coded above) render on top -->
+              <g id="oracle-dynamic-nodes"></g>
+            </svg>
+          </div>
+          <p class="hint">Outbound arrows are blue, inbound arrows are green. Integration IDs sit on the lines, with the stroke masked behind the labels for clarity.</p>
+        </div>
+
+        <div class="panel" style="margin-top:16px;">
+          <h3>Oracle Integrations (Data View)</h3>
+          <div class="table-wrap">
+            <table class="integrations-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Direction</th>
+                  <th>Type</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="oracle-integrations-body"></tbody>
+            </table>
+          </div>
+          <button id="btn-add-integration" style="margin-top:10px;">+ Add integration</button>
+          <p class="hint">This table is driven by the integration data model. Edits/adds here will update the integration details view immediately.</p>
+        </div>
+
+        <div class="panel" id="integration-editor-panel" style="margin-top:16px; display:none;">
+          <h3 id="editor-title">Add / Edit Integration</h3>
+          <form id="integration-form">
+            <datalist id="system-options">
+              <option value="Oracle"></option>
+              <option value="SAP"></option>
+              <option value="Coupa"></option>
+              <option value="Kyriba"></option>
+              <option value="Onesource"></option>
+              <option value="OneStream"></option>
+              <option value="JPMC"></option>
+              <option value="BOFA"></option>
+            </datalist>
+            <div style="margin-bottom:8px;">
+              <label style="font-size:13px; display:block; margin-bottom:2px;">Integration ID</label>
+              <input type="text" id="form-int-id" style="width:100%; padding:6px;" />
+              <small style="font-size:11px; color:#777;">For existing integrations from the diagram, this is fixed.</small>
+            </div>
+
+            <div style="margin-bottom:8px;">
+              <label style="font-size:13px; display:block; margin-bottom:2px;">Systems</label>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <div style="flex:1; min-width: 180px;">
+                  <label style="font-size:11px; color:#666; display:block; margin-bottom:2px;">From</label>
+                  <input type="text" id="form-from-system" list="system-options" style="width:100%; padding:6px;" />
+                </div>
+                <div style="flex:1; min-width: 180px;">
+                  <label style="font-size:11px; color:#666; display:block; margin-bottom:2px;">To</label>
+                  <input type="text" id="form-to-system" list="system-options" style="width:100%; padding:6px;" />
+                </div>
+              </div>
+              <div style="margin-top:6px;">
+                <label style="font-size:11px; color:#666; display:block; margin-bottom:2px;">Direction (auto)</label>
+                <input type="text" id="form-direction" style="width:100%; padding:6px; background:#f6f7fb;" readonly />
+              </div>
+            </div>
+
+            <div style="margin-bottom:8px;">
+              <label style="font-size:13px; display:block; margin-bottom:2px;">Type</label>
+              <select id="form-type" style="width:100%; padding:6px;">
+                <option value="Inbound">Inbound</option>
+                <option value="Outbound">Outbound</option>
+              </select>
+            </div>
+
+            <div style="margin-bottom:8px;">
+              <label style="font-size:13px; display:block; margin-bottom:2px;">Description</label>
+              <textarea id="form-description" rows="3" style="width:100%; padding:6px;"></textarea>
+            </div>
+
+            <div style="margin-bottom:8px;">
+              <label style="font-size:13px; display:block; margin-bottom:2px;">Jira IDs (comma-separated)</label>
+              <input type="text" id="form-jira" style="width:100%; padding:6px;" />
+            </div>
+
+            <div style="margin-bottom:8px;">
+              <label style="font-size:13px; display:block; margin-bottom:2px;">Leanspace links (one per line)</label>
+              <textarea id="form-leanspace" rows="3" style="width:100%; padding:6px;"></textarea>
+            </div>
+
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button type="button" id="btn-save-integration">Save</button>
+              <button type="button" id="btn-delete-integration" style="display:none; border:1px solid #c62828; color:#c62828; background:#fff;">Delete</button>
+              <button type="button" id="btn-cancel-integration">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-integration" class="view">
+      <h2 id="int-title">Integration Details</h2>
+      <p id="int-subtitle" style="font-size:13px;color:#555;margin-top:4px;"></p>
+      <div class="panel">
+        <div id="int-body" class="empty-hint">Select an integration from the Oracle flowchart to see full details.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const views = {
+      home: document.getElementById("view-home"),
+      systems: document.getElementById("view-systems"),
+      oracle: document.getElementById("view-oracle"),
+      integration: document.getElementById("view-integration"),
+    };
+
+    const breadcrumbsEl = document.getElementById("breadcrumbs");
+    const backButton = document.getElementById("back-button");
+    let viewHistory = ["home"];
+    let currentView = "home";
+    let currentIntegrationId = null;
+
+    function updateBreadcrumbs() {
+      let html = "";
+
+      function addCrumb(label, view, isCurrent) {
+        if (html) html += `<span class="crumb-sep">&gt;</span>`;
+        if (isCurrent) {
+          html += `<span class="crumb current"${view ? ` data-view="${view}"` : ""}>${label}</span>`;
+        } else {
+          html += `<span class="crumb" data-view="${view}">${label}</span>`;
+        }
+      }
+
+      if (currentView === "home") {
+        addCrumb("Home", "home", true);
+      } else if (currentView === "systems") {
+        addCrumb("Home", "home", false);
+        addCrumb("Systems", "systems", true);
+      } else if (currentView === "oracle") {
+        addCrumb("Home", "home", false);
+        addCrumb("Systems", "systems", false);
+        addCrumb("Oracle", "oracle", true);
+      } else if (currentView === "integration") {
+        addCrumb("Home", "home", false);
+        addCrumb("Systems", "systems", false);
+        addCrumb("Oracle", "oracle", false);
+        const label = currentIntegrationId || "Integration";
+        if (html) html += `<span class="crumb-sep">&gt;</span>`;
+        html += `<span class="crumb current">${label}</span>`;
+      }
+
+      breadcrumbsEl.innerHTML = html;
+    }
+
+    function applyView(viewName) {
+      Object.values(views).forEach(v => v.classList.remove("active"));
+      views[viewName].classList.add("active");
+      currentView = viewName;
+
+      backButton.style.display = viewName === "home" ? "none" : "inline-block";
+      updateBreadcrumbs();
+
+      if (viewName === "oracle") {
+        syncOracleDiagramFromData();
+      }
+    }
+
+    function setView(viewName) {
+      const last = viewHistory[viewHistory.length - 1];
+      if (last !== viewName) {
+        viewHistory.push(viewName);
+      }
+      applyView(viewName);
+    }
+
+    backButton.addEventListener("click", () => {
+      if (viewHistory.length > 1) {
+        viewHistory.pop();
+        const prev = viewHistory[viewHistory.length - 1];
+        applyView(prev);
+      }
+    });
+
+    breadcrumbsEl.addEventListener("click", (e) => {
+      const span = e.target.closest(".crumb");
+      if (!span || span.classList.contains("current")) return;
+      const view = span.dataset.view;
+      if (!view) return;
+
+      if (view === "home") {
+        viewHistory = ["home"];
+      } else if (view === "systems") {
+        viewHistory = ["home", "systems"];
+      } else if (view === "oracle") {
+        viewHistory = ["home", "systems", "oracle"];
+      }
+      applyView(view);
+    });
+
+    const openSystemsBtn = document.getElementById("btn-open-systems");
+    if (openSystemsBtn) {
+      openSystemsBtn.addEventListener("click", () => setView("systems"));
+    }
+
+    document.querySelectorAll(".system-card").forEach(card => {
+      card.addEventListener("click", () => {
+        const sys = card.dataset.system;
+        if (sys === "oracle") {
+          setView("oracle");
+        } else {
+          alert(
+            `Flowchart view for "${card.textContent.trim()}" not implemented yet.
+
+` +
+            `You can reuse the Oracle layout and wire it up later.`
+          );
+        }
+      });
+    });
+
+    function normalizeIntegrationType(value) {
+      const raw = (value || "").trim();
+      const lower = raw.toLowerCase();
+      if (lower === "inbound") return "Inbound";
+      if (lower === "outbound") return "Outbound";
+      return raw;
+    }
+
+    const STORAGE_KEY = "wm-tech-integrations-explorer:integrations:v1";
+
+    function deepClone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function sanitizeIntegration(raw, fallbackId) {
+      const id = String((raw && raw.id) || fallbackId || "").trim();
+      return {
+        id,
+        direction: String((raw && raw.direction) || "").trim(),
+        type: normalizeIntegrationType((raw && raw.type) || ""),
+        description: String((raw && raw.description) || "").trim(),
+        jira: Array.isArray(raw && raw.jira) ? raw.jira.map(v => String(v).trim()).filter(Boolean) : [],
+        leanspace: Array.isArray(raw && raw.leanspace) ? raw.leanspace.map(v => String(v).trim()).filter(Boolean) : [],
+      };
+    }
+
+    const DEFAULT_INTEGRATIONS = {
+      "WM_ERP_I_263": {
+        id: "WM_ERP_I_263",
+        direction: "Oracle → SAP",
+        type: "Outbound",
+        description: "Outbound integration from Oracle ERP to SAP for financial data.",
+        jira: ["JIRA-1234", "JIRA-5678"],
+        leanspace: ["https://leanspace.example.com/cases/WM_ERP_I_263"]
+      },
+      "WM_ERP_C_253": {
+        id: "WM_ERP_C_253",
+        direction: "SAP → Oracle",
+        type: "Inbound",
+        description: "Inbound integration from SAP into Oracle ERP.",
+        jira: ["JIRA-2233"],
+        leanspace: ["https://leanspace.example.com/cases/WM_ERP_C_253"]
+      },
+      "WM_ERP_I_301": {
+        id: "WM_ERP_I_301",
+        direction: "Oracle → JPMC",
+        type: "Outbound",
+        description: "Outbound integration for payment / treasury files to JPMC.",
+        jira: [],
+        leanspace: []
+      },
+      "WM_ERP_I_305": {
+        id: "WM_ERP_I_305",
+        direction: "Oracle → BOFA",
+        type: "Outbound",
+        description: "Outbound integration from Oracle to BOFA for reconciliation / payment files.",
+        jira: ["JIRA-8899"],
+        leanspace: []
+      },
+      "WM_ERP_C_310": {
+        id: "WM_ERP_C_310",
+        direction: "BOFA → Oracle",
+        type: "Inbound",
+        description: "Inbound BOFA bank statements into Oracle.",
+        jira: ["JIRA-9900"],
+        leanspace: ["https://leanspace.example.com/cases/WM_ERP_C_310"]
+      },
+      "WM_ERP_C_320": {
+        id: "WM_ERP_C_320",
+        direction: "Onesource → Oracle",
+        type: "Inbound",
+        description: "Inbound tax / compliance feeds from Onesource into Oracle.",
+        jira: [],
+        leanspace: []
+      }
+    };
+
+    function loadIntegrationsFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const base = deepClone(DEFAULT_INTEGRATIONS);
+        if (!raw) return base;
+
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return base;
+
+        for (const [key, value] of Object.entries(parsed)) {
+          if (value && typeof value === "object") {
+            base[key] = sanitizeIntegration(value, key);
+          }
+        }
+        return base;
+      } catch {
+        return deepClone(DEFAULT_INTEGRATIONS);
+      }
+    }
+
+    let INTEGRATIONS = loadIntegrationsFromStorage();
+
+    function saveIntegrationsToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(INTEGRATIONS));
+      } catch {
+        // Ignore storage failures (e.g., private mode / quota)
+      }
+    }
+
+    const intTitleEl = document.getElementById("int-title");
+    const intSubtitleEl = document.getElementById("int-subtitle");
+    const intBodyEl = document.getElementById("int-body");
+
+    function renderIntegrationPage(intId) {
+      const data = INTEGRATIONS[intId];
+      currentIntegrationId = intId;
+
+      if (!data) {
+        intTitleEl.textContent = intId;
+        intSubtitleEl.textContent = "Integration details not configured yet.";
+        intBodyEl.textContent =
+          `No metadata configured yet for ${intId}.
+
+` +
+          `Edit the INTEGRATIONS object in the script to add Jira and Leanspace details.`;
+        return;
+      }
+
+      intTitleEl.textContent = `${data.id} – ${data.direction}`;
+      intSubtitleEl.textContent = `${data.type} integration associated with Oracle.`;
+
+      let html = "";
+      html += `<strong>Integration ID:</strong> ${data.id}
+`;
+      html += `<strong>Direction:</strong> ${data.direction}
+`;
+      html += `<strong>Type:</strong> ${data.type}
+
+`;
+
+      if (data.description) {
+        html += `${data.description}
+
+`;
+      }
+
+      if (data.jira && data.jira.length) {
+        html += "<strong>Jira tickets:</strong>\n";
+        html += data.jira.map(j => `• ${j}`).join("\n");
+        html += "\n\n";
+      } else {
+        html += "<strong>Jira tickets:</strong> (not set)\n\n";
+      }
+
+      if (data.leanspace && data.leanspace.length) {
+        html += "<strong>Leanspace links:</strong>\n";
+        html += data.leanspace
+          .map(url => `• <a href="${url}" target="_blank">${url}</a>`)
+          .join("\n");
+      } else {
+        html += "<strong>Leanspace links:</strong> (not set)";
+      }
+
+      intBodyEl.innerHTML = html;
+    }
+
+    function openIntegrationPage(intId) {
+      renderIntegrationPage(intId);
+      setView("integration");
+    }
+
+    const oracleIntegrationsBody = document.getElementById("oracle-integrations-body");
+    const editorPanel = document.getElementById("integration-editor-panel");
+    const editorTitle = document.getElementById("editor-title");
+
+    const formIntId = document.getElementById("form-int-id");
+    const formDirection = document.getElementById("form-direction");
+    const formFromSystem = document.getElementById("form-from-system");
+    const formToSystem = document.getElementById("form-to-system");
+    const formType = document.getElementById("form-type");
+    const formDescription = document.getElementById("form-description");
+    const formJira = document.getElementById("form-jira");
+    const formLeanspace = document.getElementById("form-leanspace");
+
+    const btnAddIntegration = document.getElementById("btn-add-integration");
+    const btnSaveIntegration = document.getElementById("btn-save-integration");
+    const btnDeleteIntegration = document.getElementById("btn-delete-integration");
+    const btnCancelIntegration = document.getElementById("btn-cancel-integration");
+
+    const oracleFlowSvg = document.getElementById("oracle-flow-svg");
+    const btnDiagramFullscreen = document.getElementById("btn-diagram-fullscreen");
+    const btnDiagramZoomIn = document.getElementById("btn-diagram-zoom-in");
+    const btnDiagramZoomOut = document.getElementById("btn-diagram-zoom-out");
+    const btnDiagramZoomReset = document.getElementById("btn-diagram-zoom-reset");
+
+    let editorMode = null;
+    let editorExistingId = null;
+
+    function parseDirection(directionText) {
+      const raw = (directionText || "").trim();
+      if (!raw) return { from: "", to: "" };
+
+      const arrow = raw.includes("→") ? "→" : raw.includes("->") ? "->" : null;
+      if (!arrow) return { from: "", to: "" };
+
+      const parts = raw.split(arrow).map(s => s.trim()).filter(Boolean);
+      return { from: canonicalSystem(parts[0] || ""), to: canonicalSystem(parts[1] || "") };
+    }
+
+    const CANON_SYSTEMS = [
+      "Oracle",
+      "SAP",
+      "Coupa",
+      "Kyriba",
+      "Onesource",
+      "OneStream",
+      "JPMC",
+      "BOFA",
+    ];
+
+    function canonicalSystem(value) {
+      const raw = String(value || "").trim();
+      if (!raw) return "";
+      const lower = raw.toLowerCase();
+      const match = CANON_SYSTEMS.find(s => s.toLowerCase() === lower);
+      return match || raw;
+    }
+
+    function updateDirectionFromSystems() {
+      if (!formDirection || !formFromSystem || !formToSystem) return;
+      const from = canonicalSystem((formFromSystem.value || "").trim());
+      const to = canonicalSystem((formToSystem.value || "").trim());
+      formFromSystem.value = from;
+      formToSystem.value = to;
+      formDirection.value = from && to ? `${from} → ${to}` : "";
+    }
+
+    function renderOracleIntegrationsTable() {
+      if (!oracleIntegrationsBody) return;
+      oracleIntegrationsBody.innerHTML = "";
+
+      const values = Object.values(INTEGRATIONS).sort((a, b) =>
+        a.id.localeCompare(b.id)
+      );
+
+      values.forEach(intg => {
+        const tr = document.createElement("tr");
+
+        const tdId = document.createElement("td");
+        const link = document.createElement("button");
+        link.textContent = intg.id;
+        link.style.borderRadius = "3px";
+        link.style.fontSize = "11px";
+        link.addEventListener("click", () => openIntegrationPage(intg.id));
+        tdId.appendChild(link);
+
+        const tdDir = document.createElement("td");
+        tdDir.textContent = intg.direction || "";
+
+        const tdType = document.createElement("td");
+        tdType.textContent = intg.type || "";
+
+        const tdActions = document.createElement("td");
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "Edit";
+        editBtn.addEventListener("click", () => openIntegrationEditor(intg.id));
+        tdActions.appendChild(editBtn);
+
+        tr.appendChild(tdId);
+        tr.appendChild(tdDir);
+        tr.appendChild(tdType);
+        tr.appendChild(tdActions);
+
+        oracleIntegrationsBody.appendChild(tr);
+      });
+    }
+
+    function openIntegrationEditor(intId) {
+      editorPanel.style.display = "block";
+      if (intId && INTEGRATIONS[intId]) {
+        const data = INTEGRATIONS[intId];
+        editorMode = "edit";
+        editorExistingId = intId;
+        editorTitle.textContent = `Edit Integration – ${intId}`;
+
+        if (btnDeleteIntegration) btnDeleteIntegration.style.display = "inline-block";
+
+        formIntId.value = data.id;
+        formIntId.disabled = true;
+        const parsed = parseDirection(data.direction);
+        formFromSystem.value = parsed.from || "";
+        formToSystem.value = parsed.to || "";
+        updateDirectionFromSystems();
+        formType.value = normalizeIntegrationType(data.type) || "Inbound";
+        formDescription.value = data.description || "";
+        formJira.value = (data.jira || []).join(", ");
+        formLeanspace.value = (data.leanspace || []).join("\n");
+      } else {
+        editorMode = "new";
+        editorExistingId = null;
+        editorTitle.textContent = "Add New Integration";
+
+        if (btnDeleteIntegration) btnDeleteIntegration.style.display = "none";
+
+        formIntId.value = "";
+        formIntId.disabled = false;
+        formFromSystem.value = "Oracle";
+        formToSystem.value = "";
+        updateDirectionFromSystems();
+        formType.value = "Inbound";
+        formDescription.value = "";
+        formJira.value = "";
+        formLeanspace.value = "";
+      }
+    }
+
+    function closeIntegrationEditor() {
+      editorPanel.style.display = "none";
+      editorMode = null;
+      editorExistingId = null;
+
+      if (btnDeleteIntegration) btnDeleteIntegration.style.display = "none";
+    }
+
+    // Diagram fullscreen + zoom/pan
+    const ORACLE_BASE_VIEWBOX = { x: 0, y: 0, w: 800, h: 480 };
+    let oracleDiagramZoom = 1;
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function getCurrentViewBox() {
+      if (!oracleFlowSvg) return { ...ORACLE_BASE_VIEWBOX };
+      const vb = (oracleFlowSvg.getAttribute("viewBox") || "").trim();
+      const parts = vb.split(/\s+/).map(Number);
+      if (parts.length !== 4 || parts.some(n => Number.isNaN(n))) return { ...ORACLE_BASE_VIEWBOX };
+      return { x: parts[0], y: parts[1], w: parts[2], h: parts[3] };
+    }
+
+    function setViewBox(next) {
+      if (!oracleFlowSvg) return;
+      oracleFlowSvg.setAttribute(
+        "viewBox",
+        `${next.x.toFixed(2)} ${next.y.toFixed(2)} ${next.w.toFixed(2)} ${next.h.toFixed(2)}`
+      );
+    }
+
+    function applyOracleDiagramZoom(nextZoom, mode = "center") {
+      oracleDiagramZoom = clamp(nextZoom, 0.6, 3);
+      const current = getCurrentViewBox();
+
+      const cx = current.x + current.w / 2;
+      const cy = current.y + current.h / 2;
+
+      const w = ORACLE_BASE_VIEWBOX.w / oracleDiagramZoom;
+      const h = ORACLE_BASE_VIEWBOX.h / oracleDiagramZoom;
+
+      let x = mode === "reset" ? ORACLE_BASE_VIEWBOX.x : cx - w / 2;
+      let y = mode === "reset" ? ORACLE_BASE_VIEWBOX.y : cy - h / 2;
+
+      x = clamp(x, ORACLE_BASE_VIEWBOX.x, ORACLE_BASE_VIEWBOX.x + ORACLE_BASE_VIEWBOX.w - w);
+      y = clamp(y, ORACLE_BASE_VIEWBOX.y, ORACLE_BASE_VIEWBOX.y + ORACLE_BASE_VIEWBOX.h - h);
+
+      setViewBox({ x, y, w, h });
+    }
+
+    function toggleDiagramFullscreen() {
+      if (!oracleFlowSvg) return;
+      const container = oracleFlowSvg.closest(".flow-container");
+      if (!container) return;
+
+      if (document.fullscreenElement) {
+        document.exitFullscreen?.();
+      } else {
+        container.requestFullscreen?.();
+      }
+    }
+
+    if (btnDiagramFullscreen) {
+      btnDiagramFullscreen.addEventListener("click", toggleDiagramFullscreen);
+    }
+    if (btnDiagramZoomIn) {
+      btnDiagramZoomIn.addEventListener("click", () => applyOracleDiagramZoom(oracleDiagramZoom + 0.2));
+    }
+    if (btnDiagramZoomOut) {
+      btnDiagramZoomOut.addEventListener("click", () => applyOracleDiagramZoom(oracleDiagramZoom - 0.2));
+    }
+    if (btnDiagramZoomReset) {
+      btnDiagramZoomReset.addEventListener("click", () => applyOracleDiagramZoom(1, "reset"));
+    }
+
+    document.addEventListener("fullscreenchange", () => {
+      if (!btnDiagramFullscreen) return;
+      btnDiagramFullscreen.textContent = document.fullscreenElement ? "Exit full screen" : "Full screen";
+    });
+
+    // Optional pan with mouse/touch drag when zoomed
+    if (oracleFlowSvg) {
+      let isDragging = false;
+      let dragStart = null;
+
+      oracleFlowSvg.addEventListener("pointerdown", (e) => {
+        if (oracleDiagramZoom <= 1) return;
+        isDragging = true;
+        oracleFlowSvg.setPointerCapture(e.pointerId);
+        const vb = getCurrentViewBox();
+        dragStart = {
+          x: e.clientX,
+          y: e.clientY,
+          vbX: vb.x,
+          vbY: vb.y,
+          vbW: vb.w,
+          vbH: vb.h,
+        };
+      });
+
+      oracleFlowSvg.addEventListener("pointermove", (e) => {
+        if (!isDragging || !dragStart) return;
+        const rect = oracleFlowSvg.getBoundingClientRect();
+        const dx = e.clientX - dragStart.x;
+        const dy = e.clientY - dragStart.y;
+
+        const unitsPerPxX = dragStart.vbW / rect.width;
+        const unitsPerPxY = dragStart.vbH / rect.height;
+
+        let x = dragStart.vbX - dx * unitsPerPxX;
+        let y = dragStart.vbY - dy * unitsPerPxY;
+
+        x = clamp(x, ORACLE_BASE_VIEWBOX.x, ORACLE_BASE_VIEWBOX.x + ORACLE_BASE_VIEWBOX.w - dragStart.vbW);
+        y = clamp(y, ORACLE_BASE_VIEWBOX.y, ORACLE_BASE_VIEWBOX.y + ORACLE_BASE_VIEWBOX.h - dragStart.vbH);
+
+        setViewBox({ x, y, w: dragStart.vbW, h: dragStart.vbH });
+      });
+
+      function endDrag() {
+        isDragging = false;
+        dragStart = null;
+      }
+
+      oracleFlowSvg.addEventListener("pointerup", endDrag);
+      oracleFlowSvg.addEventListener("pointercancel", endDrag);
+      oracleFlowSvg.style.touchAction = "none";
+    }
+
+    function deleteIntegrationFromEditor() {
+      if (editorMode !== "edit" || !editorExistingId) return;
+      const id = editorExistingId;
+      if (!INTEGRATIONS[id]) {
+        closeIntegrationEditor();
+        return;
+      }
+
+      const ok1 = confirm(`Delete integration "${id}"?`);
+      if (!ok1) return;
+      const ok2 = confirm(
+        `This will permanently delete "${id}" from the Data View and remove it from the diagram. Continue?`
+      );
+      if (!ok2) return;
+
+      delete INTEGRATIONS[id];
+      saveIntegrationsToStorage();
+
+      renderOracleIntegrationsTable();
+      syncOracleDiagramFromData();
+
+      if (currentView === "integration" && currentIntegrationId === id) {
+        currentIntegrationId = null;
+        setView("oracle");
+      }
+
+      closeIntegrationEditor();
+    }
+
+    function saveIntegrationFromForm() {
+      const rawId = formIntId.value.trim();
+      if (!rawId) {
+        alert("Integration ID is required.");
+        return;
+      }
+
+      const id = rawId;
+      const fromSystem = (formFromSystem.value || "").trim();
+      const toSystem = (formToSystem.value || "").trim();
+      updateDirectionFromSystems();
+      const direction = formDirection.value.trim();
+      const type = normalizeIntegrationType(formType.value);
+      const description = formDescription.value.trim();
+      const jiraList = formJira.value
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean);
+      const leanspaceList = formLeanspace.value
+        .split("\n")
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      if (!fromSystem || !toSystem) {
+        alert("Please select both From and To systems.");
+        return;
+      }
+
+      if (editorMode === "new" && INTEGRATIONS[id]) {
+        alert("An integration with this ID already exists. Use Edit instead.");
+        return;
+      }
+
+      INTEGRATIONS[id] = {
+        id,
+        direction,
+        type,
+        description,
+        jira: jiraList,
+        leanspace: leanspaceList
+      };
+
+      saveIntegrationsToStorage();
+      renderOracleIntegrationsTable();
+      syncOracleDiagramFromData();
+      if (currentView === "integration" && currentIntegrationId === id) {
+        renderIntegrationPage(id);
+      }
+
+      closeIntegrationEditor();
+    }
+
+    if (btnAddIntegration) {
+      btnAddIntegration.addEventListener("click", () => openIntegrationEditor(null));
+    }
+    if (btnSaveIntegration) {
+      btnSaveIntegration.addEventListener("click", saveIntegrationFromForm);
+    }
+    if (btnCancelIntegration) {
+      btnCancelIntegration.addEventListener("click", closeIntegrationEditor);
+    }
+    if (btnDeleteIntegration) {
+      btnDeleteIntegration.addEventListener("click", deleteIntegrationFromEditor);
+    }
+
+    if (formFromSystem) {
+      formFromSystem.addEventListener("input", updateDirectionFromSystems);
+      formFromSystem.addEventListener("change", updateDirectionFromSystems);
+    }
+    if (formToSystem) {
+      formToSystem.addEventListener("input", updateDirectionFromSystems);
+      formToSystem.addEventListener("change", updateDirectionFromSystems);
+    }
+
+    document.addEventListener("click", (e) => {
+      const group = e.target.closest(".integration-label-group");
+      if (!group) return;
+      const intId = group.getAttribute("data-int-id");
+      if (!intId) return;
+      openIntegrationPage(intId);
+    });
+
+    const SVG_NS = "http://www.w3.org/2000/svg";
+
+    function getOracleDiagramSystemPositions() {
+      // Centers of the fixed nodes in the SVG viewBox (0..800, 0..480)
+      return {
+        Oracle: { x: 400, y: 230 },
+        SAP: { x: 160, y: 105 },
+        JPMC: { x: 650, y: 105 },
+        BOFA: { x: 650, y: 345 },
+        Onesource: { x: 170, y: 345 },
+      };
+    }
+
+    function clearOracleDynamicNodes() {
+      const container = document.getElementById("oracle-dynamic-nodes");
+      if (!container) return;
+      while (container.firstChild) container.removeChild(container.firstChild);
+    }
+
+    function clearOracleDynamicLinks() {
+      const container = document.getElementById("oracle-dynamic-links");
+      if (!container) return;
+      while (container.firstChild) container.removeChild(container.firstChild);
+    }
+
+    function createSvgEl(tagName, attrs = {}) {
+      const el = document.createElementNS(SVG_NS, tagName);
+      Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, String(v)));
+      return el;
+    }
+
+    function buildElbowPath(from, to, bendBias = 0) {
+      // Simple elbow routing that stays readable.
+      const midX = Math.round((from.x + to.x) / 2) + bendBias;
+      return `M ${from.x} ${from.y} L ${midX} ${from.y} L ${midX} ${to.y} L ${to.x} ${to.y}`;
+    }
+
+    function renderOracleDiagramFromData() {
+      const container = document.getElementById("oracle-dynamic-links");
+      if (!container) return;
+
+      clearOracleDynamicLinks();
+
+      clearOracleDynamicNodes();
+
+      const nodesLayer = document.getElementById("oracle-dynamic-nodes");
+      if (!nodesLayer) return;
+
+      const basePos = getOracleDiagramSystemPositions();
+
+      // Collect systems from the data model (Oracle-related only)
+      const systems = new Set(Object.keys(basePos));
+      Object.values(INTEGRATIONS).forEach(intg => {
+        const parsed = parseDirection(intg.direction);
+        const from = parsed.from;
+        const to = parsed.to;
+        if (!from || !to) return;
+        const involvesOracle = from === "Oracle" || to === "Oracle";
+        if (!involvesOracle) return;
+        systems.add(from);
+        systems.add(to);
+      });
+
+      // Place any missing systems in open slots on left/right columns.
+      const pos = { ...basePos };
+      const fixedSystems = new Set(Object.keys(basePos));
+      const dynamicSystems = Array.from(systems)
+        .filter(s => s && !fixedSystems.has(s) && s !== "Oracle")
+        .sort((a, b) => a.localeCompare(b));
+
+      const leftX = 170;
+      const rightX = 650;
+      // Use well-spaced Y centers so dynamic nodes don't overlap fixed nodes (height ~50px).
+      const ySlots = [40, 180, 260, 420];
+      const reservedLeft = [105, 230, 345];
+      const reservedRight = [105, 230, 345];
+
+      function pickSlot(side, idx) {
+        const reserved = side === "left" ? reservedLeft : reservedRight;
+        const minGap = 70;
+
+        function isOk(y) {
+          return reserved.every(ry => Math.abs(y - ry) >= minGap);
+        }
+
+        const candidates = ySlots.filter(isOk);
+        const chosen = candidates[idx % candidates.length] || candidates[0] || 260;
+        reserved.push(chosen);
+        return chosen;
+      }
+
+      dynamicSystems.forEach((systemName, idx) => {
+        // Deterministic side assignment to balance.
+        const side = idx % 2 === 0 ? "left" : "right";
+        const x = side === "left" ? leftX : rightX;
+        const y = pickSlot(side, Math.floor(idx / 2));
+        pos[systemName] = { x, y };
+
+        // Render a node box + label
+        const width = 160;
+        const height = 50;
+        const rectX = x - width / 2;
+        const rectY = y - height / 2;
+
+        const rect = createSvgEl("rect", {
+          class: "node-rect secondary",
+          x: rectX,
+          y: rectY,
+          width,
+          height,
+        });
+        const label = createSvgEl("text", {
+          class: "node-label",
+          x,
+          y: y + 5,
+        });
+        label.textContent = systemName;
+
+        nodesLayer.appendChild(rect);
+        nodesLayer.appendChild(label);
+      });
+
+      // Group integrations by other-system (relative to Oracle) to manage lane offsets.
+      const bySystem = new Map();
+      Object.values(INTEGRATIONS).forEach(intg => {
+        const parsed = parseDirection(intg.direction);
+        const from = parsed.from;
+        const to = parsed.to;
+        const involvesOracle = from === "Oracle" || to === "Oracle";
+        if (!involvesOracle) return;
+
+        const other = from === "Oracle" ? to : from;
+        if (!other || !pos[other] || other === "Oracle") return;
+
+        const arr = bySystem.get(other) || [];
+        arr.push(intg);
+        bySystem.set(other, arr);
+      });
+
+      for (const [otherSystem, list] of bySystem.entries()) {
+        const otherPos = pos[otherSystem];
+        const oraclePos = pos.Oracle;
+
+        list.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+
+        list.forEach((intg, index) => {
+          const normalizedType = normalizeIntegrationType(intg.type);
+          const typeLower = normalizedType.toLowerCase();
+
+          const parsed = parseDirection(intg.direction);
+          const from = parsed.from;
+          const to = parsed.to;
+
+          const isOutbound = from === "Oracle";
+          const isInbound = to === "Oracle";
+
+          // Route directionally for arrow orientation.
+          const start = isOutbound ? oraclePos : otherPos;
+          const end = isOutbound ? otherPos : oraclePos;
+
+          // Lane offset to reduce overlap when multiple integrations connect the same system.
+          const laneOffset = (index - (list.length - 1) / 2) * 18;
+          const bendBias = laneOffset;
+          const d = buildElbowPath(start, end, bendBias);
+
+          const pathClass = ["arrow-path"];
+          if (typeLower === "inbound" || isInbound) pathClass.push("inbound");
+          if (typeLower === "outbound" || isOutbound) pathClass.push("outbound");
+
+          const path = createSvgEl("path", {
+            d,
+            "data-int-id": intg.id,
+            class: pathClass.join(" "),
+          });
+
+          // Label placement near the midpoint.
+          const labelX = Math.round((start.x + end.x) / 2) + bendBias;
+          const labelY = Math.round((start.y + end.y) / 2) - 6 + laneOffset;
+          const labelText = `${intg.id}${normalizedType ? ` (${normalizedType})` : ""}`;
+
+          const approxWidth = Math.max(170, Math.min(260, labelText.length * 6 + 22));
+
+          const g = createSvgEl("g", {
+            class: "integration-label-group",
+            "data-int-id": intg.id,
+          });
+          const rect = createSvgEl("rect", {
+            class: "integration-label-bg",
+            x: labelX - approxWidth / 2,
+            y: labelY - 12,
+            width: approxWidth,
+            height: 16,
+          });
+          const text = createSvgEl("text", {
+            class: "integration-label",
+            x: labelX,
+            y: labelY,
+          });
+          text.textContent = labelText;
+
+          text.classList.remove("inbound", "outbound");
+          if (pathClass.includes("inbound")) text.classList.add("inbound");
+          if (pathClass.includes("outbound")) text.classList.add("outbound");
+
+          g.appendChild(rect);
+          g.appendChild(text);
+
+          container.appendChild(path);
+          container.appendChild(g);
+        });
+      }
+    }
+
+    function updateOracleDiagramIntegration(intId) {
+      if (!intId) return;
+      const data = INTEGRATIONS[intId];
+      if (!data) return;
+
+      const normalizedType = normalizeIntegrationType(data.type);
+      const group = Array.from(document.querySelectorAll(".integration-label-group[data-int-id]")).find(
+        el => el.getAttribute("data-int-id") === intId
+      );
+      if (group) {
+        const labelEl = group.querySelector(".integration-label");
+        if (labelEl) {
+          labelEl.classList.remove("inbound", "outbound");
+          if (normalizedType.toLowerCase() === "inbound") labelEl.classList.add("inbound");
+          if (normalizedType.toLowerCase() === "outbound") labelEl.classList.add("outbound");
+          labelEl.textContent = `${intId}${normalizedType ? ` (${normalizedType})` : ""}`;
+        }
+      }
+
+      const path = Array.from(document.querySelectorAll(".arrow-path[data-int-id]")).find(
+        el => el.getAttribute("data-int-id") === intId
+      );
+      if (path) {
+        path.classList.remove("inbound", "outbound");
+        if (normalizedType.toLowerCase() === "inbound") path.classList.add("inbound");
+        if (normalizedType.toLowerCase() === "outbound") path.classList.add("outbound");
+      }
+    }
+
+    function syncOracleDiagramFromData() {
+      // Always regenerate from the Data View to keep the diagram in sync
+      renderOracleDiagramFromData();
+    }
+
+    renderOracleIntegrationsTable();
+    syncOracleDiagramFromData();
+    applyView("home");
+  </script>
+</body>
+</html>
